@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cefor – Restaurant d’application</title>
+<style>
+:root{--p:#692144;--bg:#f4f5f8;--t:#23242f;--l:#e3e5ec;--ok:#1b7f5c;--w:#b36b00;--d:#c4162f}
+*{box-sizing:border-box}
+body{margin:0;padding:18px;background:var(--bg);color:var(--t);font:15px/1.45 system-ui,"Segoe UI",sans-serif}
+.w{max-width:1100px;margin:auto}
+header{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:16px}
+h1{margin:0;font-size:1.5rem;color:var(--p)}
+.card{background:#fff;border:1px solid var(--l);border-radius:10px;padding:18px;margin-bottom:16px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+label{display:block;font-size:.82rem;font-weight:600;margin-bottom:3px}
+input,select,textarea{width:100%;padding:9px;border:1px solid #cdd1dc;border-radius:7px;font:inherit;background:#fff}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--p);outline-offset:1px}
+button,.b{border:0;border-radius:7px;padding:9px 14px;font:inherit;font-weight:600;color:#fff;background:var(--p);cursor:pointer}
+.b2{background:#4d5365}.bw{background:var(--w)}.bd{background:var(--d)}.bs{padding:5px 9px;font-size:.85rem}
+.cnt{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.cnt div{background:#fff;border:1px solid var(--l);border-radius:10px;padding:10px 16px;min-width:130px}
+.cnt strong{font-size:1.5rem;color:var(--p)}.cnt .full strong{color:var(--d)}
+#msg{padding:11px 14px;border-radius:8px;margin-bottom:14px;font-weight:600;display:none;border-left:5px solid var(--ok);background:#e8f6f0}
+#msg.warn{border-color:var(--w);background:#fff3d6}#msg.err{border-color:var(--d);background:#fdeaec}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--l);border-radius:10px;overflow:hidden}
+th{background:#f0f1f6;text-align:left;font-size:.78rem;padding:10px}
+td{padding:10px;border-top:1px solid var(--l);vertical-align:top}
+tr.grp td{background:#f3e8ee;color:var(--p);font-weight:700}
+.tag{padding:2px 9px;border-radius:20px;font-size:.8rem;background:#e6e8ef}
+.tag.Payé{background:#d9f2e8;color:var(--ok)}.tag.En\ attente{background:#fff3d6;color:var(--w)}
+.act{display:flex;gap:5px;flex-wrap:wrap}
+#adm{display:none;border:2px dashed #e0b341;background:#fffbea}
+.row{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-bottom:8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.hid{display:none}
+@media print{body{background:#fff;padding:0}.np{display:none!important}}
+@media (max-width:700px){table,tbody,tr,td{display:block}thead{display:none}td{border:0;padding:3px 10px}tr:not(.grp){border-top:1px solid var(--l);padding:8px 0}}
+</style>
+</head>
+<body>
+<div class="w">
+<header class="np">
+  <h1>Restaurant d’application – Réservations</h1>
+  <div class="bar">
+    <button class="b2" id="bAdm">Mode admin</button>
+    <button class="b2" onclick="window.print()">Imprimer</button>
+  </div>
+</header>
+
+<div class="cnt np" id="cnt"></div>
+<div id="msg" role="status"></div>
+
+<!-- Administration -->
+<section class="card np" id="adm">
+  <h3 style="margin-top:0">Dates et capacités</h3>
+  <div id="dates"></div>
+  <div class="row"><input id="nd" placeholder="Nouveau jour, ex : 30/11 19:00"><input id="nc" type="number" value="30" min="0"><span></span></div>
+  <div class="bar">
+    <button id="bCfg">Enregistrer les dates</button>
+    <button class="b2" id="bExp">Exporter les données (JSON)</button>
+    <label class="b b2" style="margin:0">Importer<input type="file" id="imp" accept=".json" class="hid"></label>
+    <button class="bd" id="bCode">Changer le code admin</button>
+  </div>
+  <p style="font-size:.85rem;margin:10px 0 0">Les données sont enregistrées dans <b>ce navigateur</b>. Exportez régulièrement pour sauvegarder.</p>
+</section>
+
+<!-- Formulaire -->
+<section class="card np">
+  <form id="f">
+    <input type="hidden" id="id">
+    <div class="g">
+      <div><label for="nom">Nom</label><input id="nom" required></div>
+      <div><label for="prenom">Prénom</label><input id="prenom" required></div>
+      <div><label for="email">Email</label><input id="email" type="email" required></div>
+      <div><label for="tel">Téléphone</label><input id="tel" type="tel" required></div>
+      <div><label for="jour">Jour</label><select id="jour" required></select></div>
+      <div><label for="nb">Couverts</label><input id="nb" type="number" min="1" value="2" required></div>
+      <div><label for="sec">Secrétaire</label><select id="sec" required></select></div>
+      <div><label for="statut">Statut</label><select id="statut"><option>A payer</option></select></div>
+    </div>
+    <div style="margin-top:12px"><label for="infos">Remarques</label><textarea id="infos" rows="2"></textarea></div>
+    <div class="bar" style="margin-top:12px">
+      <button type="submit" id="bSave">Enregistrer la réservation</button>
+      <button type="button" class="b2 hid" id="bCancel">Annuler la modification</button>
+      <span style="font-size:.85rem">Maximum 6 personnes par table (au-delà : mode admin).</span>
+    </div>
+  </form>
+</section>
+
+<div class="np" style="margin-bottom:10px"><input id="q" placeholder="Rechercher par nom ou prénom…"></div>
+
+<table>
+  <thead><tr><th>Client</th><th>Couverts</th><th>Remarque</th><th>Total</th><th>Statut</th><th>Rappels</th><th class="np">Actions</th></tr></thead>
+  <tbody id="tb"></tbody>
+</table>
+</div>
+
+<script>
+/* ---------- Réglages ---------- */
+const PRIX = 45, MAX_TABLE = 6, KEY = 'cefor_resto_v1';
+const SECRETAIRES = ['Audrey','Cassidy','Charline','Johanna','Nathalie','Véronique','Caroline','Mr Le Gal','Hugues','JF'];
+const DEFAUT = {
+  cfg: {'23/11 19:00':44,'24/11 19:00':48,'25/11 19:00':52,'26/11 19:00':52},
+  res: [], hash: ''
+};
+
+/* ---------- Données ---------- */
+let S; try { S = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAUT); } catch { S = structuredClone(DEFAUT); }
+let admin = false;
+const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const prises = (j, ignore) => S.res.filter(r => r.jour === j && r.statut !== 'En attente' && r.id !== ignore).reduce((n, r) => n + r.nb_personnes, 0);
+const sha = async t => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map(b => b.toString(16).padStart(2, '0')).join('');
+
+function msg(t, type = '') { const m = $('msg'); m.textContent = t; m.className = type; m.style.display = 'block'; scrollTo({top: 0, behavior: 'smooth'}); }
+
+/* ---------- Mode admin ---------- */
+async function demanderCode(forcer) {
+  if (!S.hash || forcer) {
+    const c = prompt('Choisissez un code admin (il restera sur ce navigateur) :');
+    if (!c) return false;
+    S.hash = await sha(c); save(); return true;
+  }
+  const c = prompt('Code admin :');
+  return !!c && (await sha(c)) === S.hash;
+}
+$('bAdm').onclick = async () => {
+  if (admin) { admin = false; }
+  else if (await demanderCode()) { admin = true; }
+  else { msg('Code admin incorrect.', 'err'); return; }
+  $('bAdm').textContent = admin ? 'Quitter le mode admin' : 'Mode admin';
+  $('adm').style.display = admin ? 'block' : 'none';
+  majStatut(); render();
+};
+$('bCode').onclick = async () => { if (await demanderCode(true)) msg('Code admin modifié.'); };
+
+/* ---------- Affichage ---------- */
+function majStatut() {
+  $('statut').innerHTML = '<option>A payer</option>' + (admin ? '<option>Payé</option>' : '');
+}
+function render() {
+  const jours = Object.keys(S.cfg);
+  $('cnt').innerHTML = jours.map(j => { const r = S.cfg[j] - prises(j);
+    return `<div class="${r <= 0 ? 'full' : ''}"><small>${esc(j)}</small><br><strong>${r}</strong> places</div>`; }).join('');
+  const cur = $('jour').value;
+  $('jour').innerHTML = jours.map(j => `<option>${esc(j)}</option>`).join('');
+  if (jours.includes(cur)) $('jour').value = cur;
+  $('sec').innerHTML = SECRETAIRES.map(s => `<option>${esc(s)}</option>`).join('');
+  $('dates').innerHTML = jours.map(j => `<div class="row"><input class="dj" value="${esc(j)}"><input class="dc" type="number" min="0" value="${S.cfg[j]}"><label style="margin:0"><input type="checkbox" class="dx" style="width:auto"> Suppr.</label></div>`).join('');
+
+  const q = $('q').value.trim().toLowerCase();
+  const ordre = jours;
+  const liste = S.res.filter(r => !q || (r.nom + ' ' + r.prenom).toLowerCase().includes(q))
+    .sort((a, b) => ((ordre.indexOf(a.jour) + 1 || 9999) - (ordre.indexOf(b.jour) + 1 || 9999)) || (a.date_maj || '').localeCompare(b.date_maj || ''));
+  let g = '', h = '';
+  for (const r of liste) {
+    if (r.jour !== g) { g = r.jour; h += `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`; }
+    h += `<tr data-id="${esc(r.id)}"><td><b>${esc(r.nom)}</b> ${esc(r.prenom)}<br><small>${esc(r.telephone)}</small></td>
+      <td>${r.nb_personnes} pers.</td><td>${esc(r.infos)}</td><td><b>${r.prix_total} €</b></td>
+      <td><span class="tag ${esc(r.statut)}">${esc(r.statut)}</span></td><td>${r.nb_rappels || 0}</td>
+      <td class="np"><div class="act"><button class="bs" data-a="edit">Modifier</button>
+      ${r.email ? '<button class="bs bw" data-a="mail">Mail</button>' : ''}
+      ${admin ? '<button class="bs b2" data-a="paye">' + (r.statut === 'Payé' ? 'Non payé' : 'Payé') + '</button><button class="bs bd" data-a="del">Suppr.</button>' : ''}</div></td></tr>`;
+  }
+  $('tb').innerHTML = h || '<tr><td colspan="7">Aucune réservation.</td></tr>';
+}
+
+/* ---------- Mail (ouvre le logiciel de messagerie) ---------- */
+function mailto(r, rappel) {
+  const corps = `Bonjour ${r.prenom} ${r.nom},\n\nNous vous confirmons votre réservation pour le ${r.jour} pour ${r.nb_personnes} personne(s).\n\n` +
+    `Le montant à régler est de ${r.prix_total} EUR sur le compte BE50 0688 8898 4718 dans les 48 heures suivant votre réservation.\n` +
+    `Merci d'utiliser la communication suivante : Restaurant - ${r.nom} ${r.prenom}, ${r.jour}.\n\nCordialement,\nL'équipe du Cefor\n\n` +
+    `Pour toute question ou modification, veuillez contacter le secrétariat au 081/255.180.`;
+  location.href = 'mailto:' + encodeURIComponent(r.email) + '?subject=' + encodeURIComponent((rappel ? 'Rappel Réservation' : 'Confirmation') + " - Restaurant d'application") + '&body=' + encodeURIComponent(corps);
+}
+
+/* ---------- Formulaire ---------- */
+function reset() { $('f').reset(); $('id').value = ''; $('bCancel').classList.add('hid'); $('bSave').textContent = 'Enregistrer la réservation'; }
+$('bCancel').onclick = reset;
+$('f').onsubmit = e => {
+  e.preventDefault();
+  const id = $('id').value, nb = parseInt($('nb').value, 10), jour = $('jour').value;
+  if (nb > MAX_TABLE && !admin) return msg('Tables limitées à 6 personnes (mode admin requis pour plus).', 'err');
+  let statut = $('statut').value, attente = false;
+  if (prises(jour, id) + nb > (S.cfg[jour] ?? 0) && !admin) { statut = 'En attente'; attente = true; }
+  if (statut === 'Payé' && !admin) statut = 'A payer';
+  const ancien = S.res.find(r => r.id === id);
+  const r = { id: id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    nom: $('nom').value.trim().toUpperCase(), prenom: $('prenom').value.trim(), email: $('email').value.trim(),
+    telephone: $('tel').value.replace(/\D/g, ''), infos: $('infos').value, jour, nb_personnes: nb, prix_total: nb * PRIX,
+    secretaire: $('sec').value, statut, nb_rappels: ancien ? ancien.nb_rappels || 0 : 0,
+    date_maj: new Date().toISOString().slice(0, 19).replace('T', ' ') };
+  if (ancien) S.res[S.res.indexOf(ancien)] = r; else S.res.push(r);
+  save(); reset(); render();
+  msg(attente ? 'RESTAURANT COMPLET : la réservation est en attente.' : (ancien ? 'Fiche modifiée.' : 'Table réservée.'), attente ? 'warn' : '');
+  if (!ancien && !attente && r.email && confirm('Ouvrir le mail de confirmation pour ' + r.email + ' ?')) mailto(r, false);
+};
+
+/* ---------- Actions du tableau ---------- */
+$('tb').onclick = e => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const id = b.closest('tr').dataset.id, r = S.res.find(x => x.id === id);
+  if (b.dataset.a === 'edit') {
+    $('id').value = r.id; $('nom').value = r.nom; $('prenom').value = r.prenom; $('email').value = r.email; $('tel').value = r.telephone;
+    $('jour').value = r.jour; $('nb').value = r.nb_personnes; $('sec').value = r.secretaire; $('infos').value = r.infos;
+    majStatut(); $('statut').value = r.statut; if (r.statut === 'En attente') $('statut').innerHTML += '<option selected>En attente</option>';
+    $('bCancel').classList.remove('hid'); $('bSave').textContent = 'Enregistrer les modifications'; scrollTo({top: 0, behavior: 'smooth'});
+  } else if (b.dataset.a === 'mail') {
+    r.nb_rappels = (r.nb_rappels || 0) + 1; r.date_maj = new Date().toISOString().slice(0, 19).replace('T', ' '); save(); render(); mailto(r, true);
+  } else if (b.dataset.a === 'paye' && admin) {
+    r.statut = r.statut === 'Payé' ? 'A payer' : 'Payé'; save(); render();
+  } else if (b.dataset.a === 'del' && admin && confirm('Supprimer cette réservation ?')) {
+    S.res = S.res.filter(x => x.id !== id); save(); render(); msg('Réservation supprimée.');
+  }
+};
+$('q').oninput = render;
+
+/* ---------- Dates, export, import ---------- */
+$('bCfg').onclick = () => {
+  const c = {}, js = document.querySelectorAll('.dj'), cs = document.querySelectorAll('.dc'), xs = document.querySelectorAll('.dx');
+  js.forEach((j, i) => { if (!xs[i].checked && j.value.trim()) c[j.value.trim()] = parseInt(cs[i].value, 10) || 0; });
+  if ($('nd').value.trim()) c[$('nd').value.trim()] = parseInt($('nc').value, 10) || 0;
+  S.cfg = c; save(); $('nd').value = ''; render(); msg('Dates mises à jour.');
+};
+$('bExp').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({cfg: S.cfg, res: S.res}, null, 2)], {type: 'application/json'}));
+  a.download = 'restaurant_' + new Date().toISOString().slice(0, 10) + '.json'; a.click();
+};
+$('imp').onchange = async e => {
+  try {
+    const d = JSON.parse(await e.target.files[0].text());
+    if (Array.isArray(d)) S.res = d;                       /* ancien data_restaurant.json */
+    else if (d.res) { S.res = d.res; if (d.cfg) S.cfg = d.cfg; }
+    else { S.cfg = d; }                                     /* ancien config_restaurant.json */
+    save(); render(); msg('Import réussi.');
+  } catch { msg('Fichier JSON invalide.', 'err'); }
+  e.target.value = '';
+};
+
+majStatut(); render();
+</script>
+</body>
+</html>
