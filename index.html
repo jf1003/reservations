@@ -39,12 +39,20 @@ tr.grp td{background:#f3e8ee;color:var(--p);font-weight:700}
 </style>
 </head>
 <body>
-<div class="w">
+<form id="lf" class="card" style="max-width:380px;margin:60px auto;display:none">
+  <h1 style="font-size:1.3rem;margin-bottom:14px">Connexion</h1>
+  <label for="le">Email</label><input id="le" type="email" required autocomplete="username">
+  <label for="lp" style="margin-top:10px">Mot de passe</label><input id="lp" type="password" required autocomplete="current-password">
+  <p id="lerr" style="color:var(--d);min-height:1.2em;margin:10px 0"></p>
+  <button type="submit">Se connecter</button>
+</form>
+<div class="w" id="app" style="display:none">
 <header class="np">
   <h1>Restaurant d’application – Réservations</h1>
   <div class="bar">
     <button class="b2" id="bAdm">Mode admin</button>
     <button class="b2" onclick="window.print()">Imprimer</button>
+    <button class="b2" id="bOut">Déconnexion</button>
   </div>
 </header>
 
@@ -96,7 +104,20 @@ tr.grp td{background:#f3e8ee;color:var(--p);font-weight:700}
 </table>
 </div>
 
-<script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getDatabase, ref, onValue, update} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* ===== À REMPLIR : Console Firebase > Paramètres du projet > Vos applications > Configuration ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDPCXG1FdBx0IP2MJsD4pKO-q5rtZ_UI_c",
+  authDomain: "cefor-reservations.firebaseapp.com",
+  databaseURL: "https://cefor-reservations-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "cefor-reservations",
+  appId: "1:862682244114:web:3ad46fa5d819b8e557a4cb"
+};
+
 /* ---------- Réglages ---------- */
 const PRIX = 45, MAX_TABLE = 6, KEY = 'cefor_resto_v1';
 const SECRETAIRES = ['Audrey','Cassidy','Charline','Johanna','Nathalie','Véronique','Caroline','Mr Le Gal','Hugues','JF'];
@@ -106,9 +127,19 @@ const DEFAUT = {
 };
 
 /* ---------- Données ---------- */
-let S; try { S = JSON.parse(localStorage.getItem(KEY)) || structuredClone(DEFAUT); } catch { S = structuredClone(DEFAUT); }
-let admin = false;
-const save = () => localStorage.setItem(KEY, JSON.stringify(S));
+const fb = initializeApp(firebaseConfig), auth = getAuth(fb), db = getDatabase(fb), R = ref(db, 'resto');
+let S = structuredClone(DEFAUT), remote = structuredClone(DEFAUT), admin = false, migre = false;
+const lst = c => Object.entries(c).map(([j, n]) => ({j, n}));   /* les clés avec "/" sont interdites dans Firebase */
+const obj = l => Object.fromEntries(Object.values(l || {}).map(x => [x.j, x.n]));
+function save() {   /* n'envoie que ce qui a changé : plusieurs secrétaires peuvent travailler en même temps */
+  const u = {}, old = Object.fromEntries(remote.res.map(r => [r.id, JSON.stringify(r)])), now = new Set();
+  S.res.forEach(r => { now.add(r.id); if (old[r.id] !== JSON.stringify(r)) u['res/' + r.id] = r; });
+  Object.keys(old).forEach(id => { if (!now.has(id)) u['res/' + id] = null; });
+  if (JSON.stringify(S.cfg) !== JSON.stringify(remote.cfg)) u.cfg = lst(S.cfg);
+  if (S.hash !== remote.hash) u.hash = S.hash;
+  if (Object.keys(u).length) update(R, u).catch(e => msg('Enregistrement impossible : ' + e.message, 'err'));
+  remote = structuredClone(S);
+}
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const prises = (j, ignore) => S.res.filter(r => r.jour === j && r.statut !== 'En attente' && r.id !== ignore).reduce((n, r) => n + r.nb_personnes, 0);
@@ -147,8 +178,8 @@ function render() {
   const cur = $('jour').value;
   $('jour').innerHTML = jours.map(j => `<option>${esc(j)}</option>`).join('');
   if (jours.includes(cur)) $('jour').value = cur;
-  $('sec').innerHTML = SECRETAIRES.map(s => `<option>${esc(s)}</option>`).join('');
-  $('dates').innerHTML = jours.map(j => `<div class="row"><input class="dj" value="${esc(j)}"><input class="dc" type="number" min="0" value="${S.cfg[j]}"><label style="margin:0"><input type="checkbox" class="dx" style="width:auto"> Suppr.</label></div>`).join('');
+  { const cs = $('sec').value; $('sec').innerHTML = SECRETAIRES.map(s => `<option>${esc(s)}</option>`).join(''); if (cs) $('sec').value = cs; }
+  if (!$('adm').contains(document.activeElement)) $('dates').innerHTML = jours.map(j => `<div class="row"><input class="dj" value="${esc(j)}"><input class="dc" type="number" min="0" value="${S.cfg[j]}"><label style="margin:0"><input type="checkbox" class="dx" style="width:auto"> Suppr.</label></div>`).join('');
 
   const q = $('q').value.trim().toLowerCase();
   const ordre = jours;
@@ -240,7 +271,35 @@ $('imp').onchange = async e => {
   e.target.value = '';
 };
 
-majStatut(); render();
+/* ---------- Connexion et synchronisation ---------- */
+$('lf').onsubmit = async e => {
+  e.preventDefault(); $('lerr').textContent = '';
+  try { await signInWithEmailAndPassword(auth, $('le').value.trim(), $('lp').value); }
+  catch { $('lerr').textContent = 'Email ou mot de passe incorrect.'; }
+};
+$('bOut').onclick = () => signOut(auth);
+let off = null;
+onAuthStateChanged(auth, u => {
+  $('lf').style.display = u ? 'none' : 'block';
+  $('app').style.display = u ? 'block' : 'none';
+  if (!u) { if (off) off(); off = null; admin = false; $('adm').style.display = 'none'; $('bAdm').textContent = 'Mode admin'; return; }
+  majStatut();
+  off = onValue(R, snap => {
+    const v = snap.val() || {};
+    S = { cfg: v.cfg ? obj(v.cfg) : structuredClone(DEFAUT.cfg), res: Object.values(v.res || {}), hash: v.hash || '' };
+    remote = structuredClone(S);
+    if (!v.res && !migre) {   /* reprise des données saisies avant, dans ce navigateur */
+      migre = true;
+      try {
+        const L = JSON.parse(localStorage.getItem(KEY));
+        if (L && L.res && L.res.length && confirm('Des réservations existent dans ce navigateur. Les envoyer en ligne ?')) {
+          S.res = L.res; S.cfg = L.cfg || S.cfg; S.hash = L.hash || S.hash; save();
+        }
+      } catch {}
+    }
+    render();
+  }, e => msg('Lecture impossible : ' + e.message, 'err'));
+});
 </script>
 </body>
 </html>
