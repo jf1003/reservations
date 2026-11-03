@@ -199,12 +199,19 @@ function render() {
 }
 
 /* ---------- Mail (ouvre le logiciel de messagerie) ---------- */
+/* ---------- Mail (ouvre le logiciel de messagerie) ---------- */
 function mailto(r, rappel) {
-  const corps = `Bonjour ${r.prenom} ${r.nom},\n\nNous vous confirmons votre réservation pour le ${r.jour} pour ${r.nb_personnes} personne(s).\n\n` +
+  const corps = `Bonjour ${r.prenom} ${r.nom},\n\n` +
+    `Nous rencontrons actuellement quelques soucis informatiques : il est possible que cet e-mail vous parvienne en plusieurs exemplaires. Nous vous prions de bien vouloir nous excuser pour ce désagrément.\n\n` +
+    `Nous vous confirmons votre réservation pour le ${r.jour} pour ${r.nb_personnes} personne(s).\n\n` +
     `Le montant à régler est de ${r.prix_total} EUR sur le compte BE50 0688 8898 4718 dans les 48 heures suivant votre réservation.\n` +
-    `Merci d'utiliser la communication suivante : Restaurant - ${r.nom} ${r.prenom}, ${r.jour}.\n\nCordialement,\nL'équipe du Cefor\n\n` +
+    `Merci d'utiliser la communication suivante : Restaurant - ${r.nom} ${r.prenom}, ${r.jour}.\n\n` +
+    `Cordialement,\nL'équipe du Cefor\n\n` +
     `Pour toute question ou modification, veuillez contacter le secrétariat au 081/255.180.`;
-  location.href = 'mailto:' + encodeURIComponent(r.email) + '?subject=' + encodeURIComponent((rappel ? 'Rappel Réservation' : 'Confirmation') + " - Restaurant d'application") + '&body=' + encodeURIComponent(corps);
+
+  location.href = 'mailto:' + encodeURIComponent(r.email) + 
+    '?subject=' + encodeURIComponent((rappel ? 'Rappel Réservation' : 'Confirmation') + " - Restaurant d'application") + 
+    '&body=' + encodeURIComponent(corps);
 }
 
 /* ---------- Formulaire ---------- */
