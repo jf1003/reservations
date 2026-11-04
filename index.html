@@ -108,6 +108,7 @@ tr.grp td{background:#f3e8ee;color:var(--p);font-weight:700}
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {getDatabase, ref, onValue, update} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import {getFunctions, httpsCallable} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
 /* ===== À REMPLIR : Console Firebase > Paramètres du projet > Vos applications > Configuration ===== */
 const firebaseConfig = {
@@ -198,20 +199,13 @@ function render() {
   $('tb').innerHTML = h || '<tr><td colspan="7">Aucune réservation.</td></tr>';
 }
 
-/* ---------- Mail (ouvre le logiciel de messagerie) ---------- */
-/* ---------- Mail (ouvre le logiciel de messagerie) ---------- */
-function mailto(r, rappel) {
-  const corps = `Bonjour ${r.prenom} ${r.nom},\n\n` +
-    `Nous rencontrons actuellement quelques soucis informatiques : il est possible que cet e-mail vous parvienne en plusieurs exemplaires. Nous vous prions de bien vouloir nous excuser pour ce désagrément.\n\n` +
-    `Nous vous confirmons votre réservation pour le ${r.jour} pour ${r.nb_personnes} personne(s).\n\n` +
-    `Le montant à régler est de ${r.prix_total} EUR sur le compte BE50 0688 8898 4718 dans les 48 heures suivant votre réservation.\n` +
-    `Merci d'utiliser la communication suivante : Restaurant - ${r.nom} ${r.prenom}, ${r.jour}.\n\n` +
-    `Cordialement,\nL'équipe du Cefor\n\n` +
-    `Pour toute question ou modification, veuillez contacter le secrétariat au 081/255.180.`;
-
-  location.href = 'mailto:' + encodeURIComponent(r.email) + 
-    '?subject=' + encodeURIComponent((rappel ? 'Rappel Réservation' : 'Confirmation') + " - Restaurant d'application") + 
-    '&body=' + encodeURIComponent(corps);
+/* ---------- Mail (envoi automatique via la fonction Firebase) ---------- */
+const fn = httpsCallable(getFunctions(fb, 'europe-west1'), 'envoyerMail');
+async function mailto(r, rappel) {
+  try {
+    await fn({id: r.id, rappel: !!rappel});
+    msg('Mail envoyé à ' + r.email + '.');
+  } catch (e) { msg('Envoi du mail impossible : ' + e.message, 'err'); }
 }
 
 /* ---------- Formulaire ---------- */
@@ -233,7 +227,7 @@ $('f').onsubmit = e => {
   if (ancien) S.res[S.res.indexOf(ancien)] = r; else S.res.push(r);
   save(); reset(); render();
   msg(attente ? 'RESTAURANT COMPLET : la réservation est en attente.' : (ancien ? 'Fiche modifiée.' : 'Table réservée.'), attente ? 'warn' : '');
-  if (!ancien && !attente && r.email && confirm('Ouvrir le mail de confirmation pour ' + r.email + ' ?')) mailto(r, false);
+  if (!ancien && !attente && r.email) setTimeout(() => mailto(r, false), 800);
 };
 
 /* ---------- Actions du tableau ---------- */
