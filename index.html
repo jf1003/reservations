@@ -191,10 +191,10 @@ function render() {
     if (r.jour !== g) { g = r.jour; h += `<tr class="grp"><td colspan="7">${esc(g)}</td></tr>`; }
     h += `<tr data-id="${esc(r.id)}"><td><b>${esc(r.nom)}</b> ${esc(r.prenom)}<br><small>${esc(r.telephone)}</small></td>
       <td>${r.nb_personnes} pers.</td><td>${esc(r.infos)}</td><td><b>${r.prix_total} €</b></td>
-      <td><span class="tag ${esc(r.statut)}">${esc(r.statut)}</span></td><td>${r.nb_rappels || 0}</td>
+      <td><span class="tag ${esc(r.statut)}">${esc(r.statut)}</span>${admin ? '<br><label style="display:inline-flex;align-items:center;gap:5px;margin:5px 0 0;font-weight:600;cursor:pointer"><input type="checkbox" style="width:auto" data-a="paye"' + (r.statut === 'Payé' ? ' checked' : '') + '> Payé</label>' : ''}</td><td>${r.nb_rappels || 0}</td>
       <td class="np"><div class="act"><button class="bs" data-a="edit">Modifier</button>
       ${r.email ? '<button class="bs bw" data-a="mail">Mail</button>' : ''}
-      ${admin ? '<button class="bs b2" data-a="paye">' + (r.statut === 'Payé' ? 'Non payé' : 'Payé') + '</button><button class="bs bd" data-a="del">Suppr.</button>' : ''}</div></td></tr>`;
+      ${admin ? '<button class="bs bd" data-a="del">Suppr.</button>' : ''}</div></td></tr>`;
   }
   $('tb').innerHTML = h || '<tr><td colspan="7">Aucune réservation.</td></tr>';
 }
@@ -232,7 +232,7 @@ $('f').onsubmit = e => {
 
 /* ---------- Actions du tableau ---------- */
 $('tb').onclick = e => {
-  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const b = e.target.closest('[data-a]'); if (!b) return;
   const id = b.closest('tr').dataset.id, r = S.res.find(x => x.id === id);
   if (b.dataset.a === 'edit') {
     $('id').value = r.id; $('nom').value = r.nom; $('prenom').value = r.prenom; $('email').value = r.email; $('tel').value = r.telephone;
@@ -242,7 +242,7 @@ $('tb').onclick = e => {
   } else if (b.dataset.a === 'mail') {
     r.nb_rappels = (r.nb_rappels || 0) + 1; r.date_maj = new Date().toISOString().slice(0, 19).replace('T', ' '); save(); render(); mailto(r, true);
   } else if (b.dataset.a === 'paye' && admin) {
-    r.statut = r.statut === 'Payé' ? 'A payer' : 'Payé'; save(); render();
+    r.statut = b.checked ? 'Payé' : 'A payer'; save(); render();
   } else if (b.dataset.a === 'del' && admin && confirm('Supprimer cette réservation ?')) {
     S.res = S.res.filter(x => x.id !== id); save(); render(); msg('Réservation supprimée.');
   }
